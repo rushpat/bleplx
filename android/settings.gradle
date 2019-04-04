@@ -1,0 +1,3 @@
+rootProject.name = 'BLEPLX'
+
+include ':app'
