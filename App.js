@@ -1,29 +1,117 @@
 /**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
  * @format
  * @flow
  */
 
 import React, { Component } from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
-
-const instructions = Platform.select({
-  ios: "Press Cmd+R to reload,\n" + "Cmd+D or shake for dev menu",
-  android:
-    "Double tap R on your keyboard to reload,\n" +
-    "Shake or press menu button for dev menu"
-});
+import { BleManager, Device } from "react-native-ble-plx";
 
 type Props = {};
+
 export default class App extends Component<Props> {
+  constructor() {
+    //variable cha is an empty variable that will later accept the proper Characteristic object
+    var cha;
+    super();
+
+    //creates a manager for all BLE devices, services, and characteristics
+    this.manager = new BleManager();
+  }
+
+  //checks whether the Bluetooth state of the phone is on or off and prints accordingly
+  componentWillMount() {
+    const subscription = this.manager.onStateChange(state => {
+      if (state === "PoweredOn") {
+        this.scanAndConnect();
+        console.log("Bluetooth state of phone: ON");
+      } else {
+        console.log("Bluetooth state of phone: OFF");
+      }
+    }, true);
+  }
+
+  //scans for devices
+  scanAndConnect() {
+    this.manager.startDeviceScan(null, null, (error, device) => {
+      if (error) {
+        // Handle error (scanning will be stopped automatically)
+        return;
+      }
+
+      //logs the name, ID, and connectivity of each detected device
+      console.log(
+        "Device name: " +
+          device.name +
+          "| Device ID: " +
+          device.id +
+          "| isConnectable: " +
+          device.isConnectable
+      );
+
+      //stops scanning for more devices is the SH-08 is detected and connects to it
+      if (
+        device.name === "SH-HC-08" ||
+        device.id === "5AFA4A05-59F5-8390-03CA-E7F6FE531E2D"
+      ) {
+        this.manager.stopDeviceScan();
+        device
+          .connect()
+          .then(device => {
+            console.log("This phone has been connected to the HC-08 module.");
+            //returns device after confirming that it has discoverable services and characteristics
+            return device.discoverAllServicesAndCharacteristics();
+          })
+          .then(device => {
+            this.findServicesAndCharacteristics(device);
+          })
+          .catch(error => {
+            console.log("error");
+          });
+      }
+    });
+  }
+
+  //prints all possible services and characteristics of the device and saves the one of use to us in var cha
+  findServicesAndCharacteristics(device) {
+    device.services().then(services => {
+      services.forEach((service, i) => {
+        console.log("Service UUID: " + service.uuid);
+        service.characteristics().then(characteristics => {
+          characteristics.forEach((c, i) => {
+            console.log(
+              "Characteristic for this Service: " +
+                c.uuid +
+                "| isReadable: " +
+                c.isReadable +
+                "| isWritableWithResponse: " +
+                c.isWritableWithResponse +
+                "| isWritableWithoutResponse: " +
+                c.isWritableWithoutResponse
+            );
+
+            if (c.isWritableWithoutResponse) {
+              this.cha = c;
+            }
+          });
+        });
+      });
+    });
+  }
+
+  //writes a value in Base64 format to the arduino
+  writeSth(val) {
+    this.cha.writeWithoutResponse(val).catch(err => {
+      console.log("Error in writing valye to Arduino");
+    });
+  }
+
+  //use the following function to write something to the arduino: this.writeSth("QQ==");
+
   render() {
     return (
       <View style={styles.container}>
-        <Text style={styles.welcome}>Welcome to React Native!</Text>
-        <Text style={styles.instructions}>To get started, edit App.js</Text>
-        <Text style={styles.instructions}>{instructions}</Text>
+        <Text style={styles.welcome}>Hello</Text>
       </View>
     );
   }
@@ -40,10 +128,5 @@ const styles = StyleSheet.create({
     fontSize: 20,
     textAlign: "center",
     margin: 10
-  },
-  instructions: {
-    textAlign: "center",
-    color: "#333333",
-    marginBottom: 5
   }
 });
