@@ -4,12 +4,12 @@
  */
 
 import React, { Component } from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { BleManager, Device } from "react-native-ble-plx";
+import { Alert, Platform, TouchableHighlight } from 'react-native';
 
-type Props = {};
 
-export default class App extends Component<Props> {
+export default class App extends Component {
   constructor() {
     //variable cha is an empty variable that will later accept the proper Characteristic object
     var cha;
@@ -17,6 +17,10 @@ export default class App extends Component<Props> {
 
     //creates a manager for all BLE devices, services, and characteristics
     this.manager = new BleManager();
+  }
+  _onPressButton() {
+    Alert.alert('Buzz');
+    this.writeSth("QQ==");
   }
 
   //checks whether the Bluetooth state of the phone is on or off and prints accordingly
@@ -42,11 +46,11 @@ export default class App extends Component<Props> {
       //logs the name, ID, and connectivity of each detected device
       console.log(
         "Device name: " +
-          device.name +
-          "| Device ID: " +
-          device.id +
-          "| isConnectable: " +
-          device.isConnectable
+        device.name +
+        "| Device ID: " +
+        device.id +
+        "| isConnectable: " +
+        device.isConnectable
       );
 
       //stops scanning for more devices is the SH-08 is detected and connects to it
@@ -81,13 +85,13 @@ export default class App extends Component<Props> {
           characteristics.forEach((c, i) => {
             console.log(
               "Characteristic for this Service: " +
-                c.uuid +
-                "| isReadable: " +
-                c.isReadable +
-                "| isWritableWithResponse: " +
-                c.isWritableWithResponse +
-                "| isWritableWithoutResponse: " +
-                c.isWritableWithoutResponse
+              c.uuid +
+              "| isReadable: " +
+              c.isReadable +
+              "| isWritableWithResponse: " +
+              c.isWritableWithResponse +
+              "| isWritableWithoutResponse: " +
+              c.isWritableWithoutResponse
             );
 
             if (c.isWritableWithoutResponse) {
@@ -101,8 +105,9 @@ export default class App extends Component<Props> {
 
   //writes a value in Base64 format to the arduino
   writeSth(val) {
+    console.log(val);
     this.cha.writeWithoutResponse(val).catch(err => {
-      console.log("Error in writing valye to Arduino");
+      console.log("Error in writing value to Arduino");
     });
   }
 
@@ -112,6 +117,11 @@ export default class App extends Component<Props> {
     return (
       <View style={styles.container}>
         <Text style={styles.welcome}>Hello</Text>
+        <TouchableHighlight onPress={() => this._onPressButton()} underlayColor="white">
+          <View style={styles.button}>
+            <Text style={styles.buttonText}>Buzz</Text>
+          </View>
+        </TouchableHighlight>
       </View>
     );
   }
@@ -128,5 +138,20 @@ const styles = StyleSheet.create({
     fontSize: 20,
     textAlign: "center",
     margin: 10
+  },
+  container: {
+    paddingTop: 60,
+    alignItems: 'center'
+  },
+  button: {
+    marginBottom: 30,
+    width: 260,
+    alignItems: 'center',
+    backgroundColor: '#2196F3'
+  },
+  buttonText: {
+    padding: 20,
+    color: 'white'
   }
 });
+
